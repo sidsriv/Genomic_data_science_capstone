@@ -1,0 +1,114 @@
+---
+title: "Gene Expression Statistical Analysis"
+author: "Felix E. Rivera-Mariani, PhD"
+date: "August 14, 2016"
+output: pdf_document
+---
+
+### Summary
+
+This report describes the statistical analysis of gene expression counts between fetal and adult brains. After obtaining the reads counts per sample and performing exploratory analysis of the samples' by phenotypic variables, a Wald test was perform to evaluate statistical significance expression by age group (fetal vs adult) with DEQseq2 package in R. A Benjamini & Hochberg p-value adjustment, also known as false discovery rate, was applied to correct for multiple testing. A volcano plot was constructed and the proportions of up-regulated vs down-regulated genes examined. Important to note is that in the age group, the fetal samples were the reference samples.
+
+**Note**: This report was prepared with R version 3.3 https://www.r-project.org/
+) and knitr (yihui.name/knitr/). Find files related to this genomic data science project [here](https://github.com/friveramariani/genomic-data-science)
+```{r, echo=FALSE}
+gene_exp <- read.delim("C:/Users/Felix/Dropbox/Coursera/Genomic-Data-Science/8-Genomic-datascience-capstone/github-files/gene_expression_statistical.tabular")
+```
+
+**Table 1**: First 6 rows of the DEQseq2 output
+```{r, dataset, echo=FALSE, message=FALSE, warning=FALSE}
+## Calculate p-adjusted value using Benjamini & Hochberg adjustment (also called 
+## false discovery rate) 
+p_adj <- p.adjust(gene_exp$p_value, method = "BH", n = length(gene_exp$p_value))
+
+## select variables of interest: gene, log2-fold change and p-value
+library (dplyr)
+gene_exp_new <- select (gene_exp, gene, log2.fold_change., p_value)
+
+## add p-adjusted value to the data frame
+gene_exp_final <- data.frame(gene_exp_new, p_adj)
+
+## rename variables
+names(gene_exp_final) <- c("gene_id", "log2_change", "p_value", "p_adj")
+
+library (pander)
+pander(head (gene_exp_final))
+```
+
+Total rows in the dataset:
+```{r, echo=FALSE}
+nrow(gene_exp_final)
+```
+
+Total of rows in which the **log2_change > 1** (up-regulated by 1 log2-fold change)
+```{r}
+sum(gene_exp_final$log2_change > 1, na.rm=TRUE)
+```
+
+Total of rows in which the **log2_change > -1** (down-regulated by 1 log2-fold change)
+```{r}
+sum(gene_exp_final$log2_change < -1, na.rm=TRUE)
+```
+
+Total of rows in which the **adjusted p-value < 0.05**
+```{r}
+sum(gene_exp_final$p_adj < 0.05, na.rm=TRUE)
+```
+
+Total of rows in which the **adjusted p-value is < 0.05 for up-regulated genes**
+```{r}
+sum(gene_exp_final$p_adj < 0.05 & gene_exp_final$log2_change > 1, na.rm=TRUE)
+```
+
+Total of rows in which the **adjusted p-value is < 0.05 for down-regulated genes**
+```{r}
+sum(gene_exp_final$p_adj < 0.05 & gene_exp_final$log2_change < -1, na.rm=TRUE)
+```
+
+**Figure 1**: Volcano plot of the up-regulated and down-regulate genes in the DEQseq2 output
+
+*Legend*: **red** = adjusted p-value < 0.05; **orange** = absolute log2-fold change > 1; **green** = adjusted p-value < 0.05 and absolute log2-fold change > 1
+
+```{r, volcano plote, echo=FALSE, warning=FALSE, message=FALSE}
+## volcano plot
+with(gene_exp_final, plot(log2_change, -log10(p_value), pch=20, main="Volcano plot"))
+
+## add color to points 
+with(subset(gene_exp_final, p_adj<.05 ), points(log2_change, -log10(p_value), pch=20, col="red"))
+with(subset(gene_exp_final, abs(log2_change)>1), points(log2_change, -log10(p_value), pch=20, col="orange"))
+with(subset(gene_exp_final, p_adj<.05 & abs(log2_change)>1), points(log2_change, -log10(p_value), pch=20, col="green"))
+```
+
+From the volcano plot above, it can be appreciated that there are more genes with log2-fold change higher than 0 than below 0. 
+
+**Fisher Exact binomial test for up-regulated genes**
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+binom.test(4473, 7770, alternative = c("two.sided"))
+```
+
+
+
+**Fisher Exact binomial test for down-regulated genes**
+```{r, echo=FALSE}
+binom.test(3297, 7770, alternative = c("two.sided"))
+```
+
+**Difference in proportion between up-regulated and down-regulated genes**
+```{r}
+5756/4243
+```
+
+
+**Top 6 up-regulated genes with p-adj < 0.05 and log2-fold change > 1**
+```{r, echo=FALSE}
+gene_exp_final %>% filter (log2_change > 1) %>% arrange(p_adj) %>% head
+```
+
+**Top 6 down-regulated genes with p-adj < 0.05 and log2-fold change below -1**
+```{r, echo=FALSE}
+gene_exp_final %>% filter (log2_change < -1) %>% arrange(p_adj) %>% head
+```
+
+
+### Conclusion
+From the genes (44394 in total) listed in the dataset output from DESeq2, 8732 and 16204 had a log2-fold change higher than 1 (up-regulated) and -1 (down-regulated), respectively. When considering adjusted p-value, 8213 genes with an adjusted p-value below 0.05. When considering both thresholds, adjusted p-value < 0.05 and absolute log2-fold change > 1, there is nearly 36% higher proportion up-regulated  compared to down-regulated genes. In summary, in this genomic data analysis of RNA-seq data from three fetal and three adult brains there are more up-regulated in adult brains compared to fetal brains.  

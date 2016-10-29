@@ -1,0 +1,97 @@
+---
+title: "Gene Expression Exploratory Analysis"
+author: 'Felix E. Rivera-Mariani, PhD'
+date: "August 7, 2016"
+output: pdf_document
+---
+
+### Summary
+This report present an exploratory data analysis for the gene counts for the 6 samples evaluated this capstone project: 3 samples correspond to fetus and 3 to adults. Among the exploratory analysis performed are distances between samples, boxplots of the FPKMs (both untransformed and log2 transformed), as well as PCA analysis. 
+
+```{r, working directory, echo=FALSE}
+setwd("C:/Users/Felix/Dropbox/Coursera/Genomic-Data-Science/8-Genomic-datascience-capstone/github-files")
+```
+
+```{r, datasets, echo=FALSE, warning=FALSE, message=FALSE}
+# load datasets
+## gene expression dataset
+gene_exp <- read.delim("gene_approx_counts_in_FPKM.txt")
+
+## dataset with phenotypic information
+phenotypic <- read.delim("gdc-sample-phenotypic-summalign.txt")
+
+## create tidy dataset of gene expression
+library (tidyr)
+gene_exp_long <- gather (gene_exp, sample, fpkm, FPKM535:FPKM566)
+
+## re-order the sample column
+
+gene_exp_long$sample <- factor (gene_exp_long$sample, order=TRUE, levels=c("FPKM534", "FPKM535",
+	"FPKM538", "FPKM541", "FPKM561", "FPKM566"))
+```
+
+```{r, distance, echo=FALSE, warning=FALSE, message=FALSE}
+sampleDists <- dist( t( (gene_exp[2:7])))
+
+sampleDists
+```
+
+From the distance matrix above, runs 534, 535, and 561 are have the shortest distances (less than 10^-2). All other distances are higher than 10^5.  
+
+```{r, boxplot, echo=FALSE, warning=FALSE, message=FALSE}
+# boxplot of counts FPKM without transformation
+boxplot (fpkm ~ sample, gene_exp_long, main= "Boxplots of FPKMs per Sample",
+         ylab="FPKM", xlab="Sample", las=1)
+```
+
+The boxplot of the FPKMs per sample provides evidence that the FPKMs values must be transformed. Log2 transformation was selected. The boxplot for the log2 transformed FPKM per sample is found below. 
+
+```{r, log2 transf, echo=FALSE, warning=FALSE, message=FALSE}
+library (dplyr)
+gene_exp_long <- mutate (gene_exp_long, logstrnf = log2(gene_exp_long$fpkm))
+
+## boxplot of log2 transformed FPKM
+boxplot(logstrnf ~ sample, gene_exp_long, main="Boxplots of Log2 Transformed FPKM per Sample", ylab="Log2 FPKM", xlab="Samples", las=1)
+```
+
+From the log2 boxplot above, the distribution of the FPKMs corresponding to the adult samples (534, 535, 561) shift a little higher than the distribution of the fetus samples (538, 541, 566)
+
+To further evaluate the distances between samples, a PCA scatterplot was constructed.
+
+```{r, PCA, echo=FALSE, message=FALSE, warning=FALSE}
+# Principal Commponent Analysis
+## calculate the mean, including all fpkm
+mean_all <- mean (gene_exp_long$fpkm)
+
+## substract the mean of fpkms to each fpkm observation
+gene_exp_long <- mutate (gene_exp_long, dfallmean = mean_all - gene_exp_long$fpkm)
+
+## calculat the mean difference by run and create a data frame
+pca <- gene_exp_long %>% group_by(sample) %>% summarise(dfmeanall_fpkm = mean(dfallmean))
+pca <- as.data.frame(pca)
+
+## calculate the mean fpkm for each sample
+samples <- select(gene_exp, FPKM534, FPKM535, FPKM538, FPKM541, FPKM561, FPKM566)
+mean_all_within <- apply(samples, 2, mean)
+
+## create columns in which the mean fpkm for each sample is substracted to each sample
+gene_exp <- mutate (gene_exp, FPKM534mindiff = FPKM534 - 28.5, FPKM535mindiff = FPKM535 - 28.5, FPKM538mindiff = FPKM538 - 56.4, FPKM541mindiff = FPKM541 - 56.4, FPKM561mindiff = FPKM561 - 14.4, FPKM566mindiff = FPKM566 - 37.5)
+
+## calculate the mean for each sample mean difference columns 
+gene_exp_mindiff_within <- select(gene_exp, FPKM534mindiff, FPKM535mindiff, FPKM538mindiff, FPKM541mindiff, FPKM561mindiff, FPKM566mindiff)
+meandiff_within <- apply (gene_exp_mindiff_within, 2, mean)
+
+## add the phenotypic variables
+pca <- data.frame (pca, meandiff_within)
+age <- c("adult", "adult", "fetus", "fetus", "adult", "fetus")
+pca <- data.frame (pca, meandiff_within, age)
+sample_id <- c("R2857", "R2869", "R3462", "R3485", "R4166", "R4706")
+pca <- data.frame (pca, meandiff_within, age, sample_id)
+
+## create a pca scatter plot
+library (ggplot2)
+pcaplot <- ggplot(pca, aes(meandiff_within, dfmeanall_fpkm, color=age, shape=sample)) + geom_point(size=3) + xlab("Variance of Log2 FPKM withn Samples") + ylab("Overall FPKM Log2 Variance")
+pcaplot
+```
+
+The PCA scatter plot above supports the distance matrix mentionved earlier in this report. In the scatter plot above, FPKMs distances corresponding to fetus samples (538, 541, and 566) form a cluster, and those for adult samples (534, 535, 561) form another although sample 561 seems a bit closer to the fetus than the adult cluster.  

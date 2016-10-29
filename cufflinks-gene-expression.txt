@@ -1,0 +1,6 @@
+SRR1554538: https://usegalaxy.org/datasets/bbd44e69cb8906b52f9d659e4ca39945/display?to_ext=tabular
+SRR1554541: https://usegalaxy.org/datasets/bbd44e69cb8906b5fe9424507ac47c3c/display?to_ext=tabular
+SRR1554566: https://usegalaxy.org/datasets/bbd44e69cb8906b581dedd66d5c78fd5/display?to_ext=tabular
+SRR1554535: https://usegalaxy.org/datasets/bbd44e69cb8906b5dc7f4548022ee8ea/display?to_ext=tabular
+SRR1554534: https://usegalaxy.org/datasets/bbd44e69cb8906b55ee222aff89a18e1/display?to_ext=tabular
+SRR1554561: https://usegalaxy.org/datasets/bbd44e69cb8906b5fe9424507ac47c3c/display?to_ext=tabular

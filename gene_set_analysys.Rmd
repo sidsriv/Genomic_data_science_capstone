@@ -1,0 +1,188 @@
+---
+title: Gene Set Analysis to Evaluate the Role of Promoters associated with Histone Modification
+  H3K4me3 in Differential Gene Expression between Fetal and Adult Brains
+author: "Felix E. Rivera-Mariani, PhD"
+date: "August 17, 2016"
+output: pdf_document
+---
+
+## Summary
+This genomic data analysis report evaluates the role of the promoter associated histone modification **H3K4me3** in differential gene expression between fetal and adult brains. After obtaining each H3K4me3 Chip-seq datasets (in BED format) for fetal brain, adult brains, and liver samples through query annotations using [AnnotationHub](http://bioconductor.org/packages/release/bioc/vignettes/AnnotationHub/inst/doc/AnnotationHub-HOWTO.html), the peak distances was evaluated for each sample. Furthermore, the overlap of the peaks between the three datasets were examined. Lastly, the percentage of promoters with H3K4me3 peaks was calculaated for each dataset and compared. Based on the findings from these analyses, the questions listed below were answered. 
+
+## Questions to Answer
+1) Are there changes in H3K4me3 between fetal and adult brain over promoters for genes differentially expressed between fetal and adult brain?
+
+2) Are promoters of genes diferentially expressed between adult and fetal brain marked by H3K4me3 in liver?
+
+**Note: find the complete R-Markdown for this report [in this repository](https://github.com/friveramariani/genomic-data-science) 
+
+## Downloading the Data
+The gz-compressed files were obtained from the Roadmap Epigenomic Project repository, which can be found [here](http://egg2.wustl.edu/roadmap/data/byFileType/peaks/unconsolidated/narrowPeak/). Nevertheless, the gz-compressed BED files were downloaded directly into R through [Annotationhub](http://bioconductor.org/packages/release/bioc/vignettes/AnnotationHub/inst/doc/AnnotationHub-HOWTO.html). The queries used to locate the corresponding fetal brain, adult brain, and liver datasets were the following:
+
+1) fetal brain query: "Fetal", "H3K4me3", "Brain"
+2) adult brain query: "Brain", "H3K4me3", "Frontal"
+3) liver query: "Liver", "H3K4me3"
+
+The corresponding records used to retrieve the GRanges were the following:
+
+1) fetal brain: AH44720
+2) adult brain: AH43565
+3) liver : AH44167	
+
+```{r, peak_data, echo=FALSE, message=FALSE, warning=FALSE}
+library(AnnotationHub)
+# assign annotations records to the ah
+ah <- AnnotationHub()
+
+## fetal samples
+### perform query to ID files corresonding to fetal brain samples and H3K4me3 
+fetal_brain <- ah[["AH44720"]]
+
+## adult sample
+adult_brain <- ah[["AH43565"]]
+
+## liver sample
+liver <- ah[["AH44167"]]
+```
+
+## Chip-seq dataset for fetal brain, adult brain, and liver samples
+Find below the Chip-seq (GRanges) datasets for each of the samples, starting with fetal and adult brain, and ending with liver dataset. Only first two rows of each dataset were printed to limit the length of this report. There are only presented as data frames here for ease of visualizaation.
+
+#### Table 1: GRanges BED file for Fetal Brain Samples
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(pander)
+fetal_brain_df <- as.data.frame(fetal_brain)
+pander(fetal_brain_df[1:2,])
+```
+
+#### Table 2: GRanges BED file for Adult Brain Samples
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+adult_brain_df <- as.data.frame(adult_brain)
+pander(adult_brain_df[1:2,])
+```
+
+#### Table 3: GRanges BED file for Liver Samples
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+liver_df <- as.data.frame(liver)
+pander(liver_df[1:2,])
+```
+
+To begin examining differences in peaks between the three datasets, the descriptive statistics of the widths of the peaks was examined.
+
+## Descriptive Statistics of Peak Distances
+```{r, memssage=FALSE, warning=FALSE}
+summary(width(fetal_brain))
+summary(width(adult_brain))
+summary(width(liver))
+```
+
+From the descriptive statistics above, the fetal peaks have the largest widths, and the adult samples having the lowest. The widths of the liver samples are comparable to those of the fetal
+
+### Venn Diagram for Overlapping Peaks
+```{r, overlaps, echo=FALSE, message=FALSE, warning=FALSE}
+# finding the overlap in peaks in the overal dataset
+library(ChIPpeakAnno)
+ol_f_a_l <- findOverlapsOfPeaks(fetal_brain, adult_brain, liver)
+
+makeVennDiagram(ol_f_a_l)
+```
+
+To evaluate the percentage of promoters having H3K4me3 peaks them, the code below was evaluated. First, a reference genome was used (hg19 as used throughout the genomic data science project), and the overlaps of promotes peaks with those corresponding to H3K4me3 determined. 
+#### Table 4: Percentge of Promoters with H3K4me3 peaks
+
+```{r, eval=FALSE}
+ref_seq <- query(ah, "RefSeq")
+ref_seq_hg19 <- ref_seq[ref_seq$genome == "hg19" & ref_seq$title== "RefSeq Genes"]
+
+## download the information
+ref_seq_hg19 <- ref_seq_hg19[[1]]
+
+## calculate percent of promoters with H3K4me3 peaks
+promoters_ref_seq_hg19 <- promoters(ref_seq_hg19)
+
+### find overlaps of fetal brain promoters
+fetal_brain_ovlps <- findOverlaps(promoters_ref_seq_hg19, fetal_brain)
+
+### find overlaps of adult brain promoters
+adult_brain_ovlps <- findOverlaps(promoters_ref_seq_hg19, adult_brain)
+
+### find overlaps of liver promoters
+liver_ovlps <- findOverlaps(promoters_ref_seq_hg19, liver)
+
+### calculate the percentages with promoters with H3K4me3 peaks
+fetal_prcnt_pm_pk <- length(unique(subjectHits(fetal_brain_ovlps))) / length(promoters_ref_seq_hg19)
+
+adult_prcnt_pm_pk <- length(unique(subjectHits(adult_brain_ovlps))) / length(promoters_ref_seq_hg19)
+
+liver_prcnt_pm_pk <- length(unique(subjectHits(liver_ovlps))) / length(promoters_ref_seq_hg19)
+
+prcnt_pm_pk_df <- data.frame(fetal_prcnt_pm_pk, adult_prcnt_pm_pk, liver_prcnt_pm_pk)
+
+names(prcnt_pm_pk_df) <-c("fetal", "adult", "liver")
+
+library(tidyr)
+prcnt_pm_pk_df_tidy <- gather(prcnt_pm_pk_df, sample, H3K4me3_pcnt_pks, fetal:liver)
+
+pander(prcnt_pm_pk_df_tidy)
+```
+
+
+```{r, percent of promoters with peaks, echo=FALSE, message=FALSE, warning=FALSE}
+# obtain gene information from reference genome hg19
+ref_seq <- query(ah, "RefSeq")
+ref_seq_hg19 <- ref_seq[ref_seq$genome == "hg19" & ref_seq$title== "RefSeq Genes"]
+
+## download the information
+ref_seq_hg19 <- ref_seq_hg19[[1]]
+
+## calculate percent of promoters with H3K4me3 peaks
+promoters_ref_seq_hg19 <- promoters(ref_seq_hg19)
+
+fetal_brain_ovlps <- findOverlaps(promoters_ref_seq_hg19, fetal_brain)
+
+adult_brain_ovlps <- findOverlaps(promoters_ref_seq_hg19, adult_brain)
+
+liver_ovlps <- findOverlaps(promoters_ref_seq_hg19, liver)
+
+fetal_prcnt_pm_pk <- length(unique(subjectHits(fetal_brain_ovlps))) / length(promoters_ref_seq_hg19)
+adult_prcnt_pm_pk <- length(unique(subjectHits(adult_brain_ovlps))) / length(promoters_ref_seq_hg19)
+liver_prcnt_pm_pk <- length(unique(subjectHits(liver_ovlps))) / length(promoters_ref_seq_hg19)
+
+prcnt_pm_pk_df <- data.frame(fetal_prcnt_pm_pk, adult_prcnt_pm_pk, liver_prcnt_pm_pk)
+
+names(prcnt_pm_pk_df) <-c("fetal", "adult", "liver")
+
+library(tidyr)
+prcnt_pm_pk_df_tidy <- gather(prcnt_pm_pk_df, sample, H3K4me3_pcnt_pks, fetal:liver)
+
+pander(prcnt_pm_pk_df_tidy)
+```
+
+
+## Conclusion
+**Answer to Question 1**
+Yes, there are changes in H3K4me3 between fetal brain and adult brain samples. This is supported by the following: 
+
+1) There is  considerable difference between the means of the peaks' width between adult brain and fetal brain samples (658 vs 1332). This suggests that there are more peaks in the adult samples, and it is consistent with the differences in overall sum of peaks(** refer to the Ven Diagram**): peaks in adult brains are nearly 8 times more frequent than in fetal brain. 
+
+2) There is a significant overlap of the peaks between fetal and adult brain, but this would be expected given that not all genes were down regulated between fetal and adult brain ([refer to the gene expression report](https://www.dropbox.com/s/8ezhdy2idpst8su/gene_expression.pdf?dl=0). 
+
+3) More importantly, when considering the promoters with H3K4me3 peaks, adult brain samples had 14% highe proportion compared to   fetal samples. Therefore, there are more peaks and a higher proportion of promoters with H3k4me3 in adult brain samples.
+
+**Answer to Questino 2**
+No, changes in H3K4me3 between fetal brain and adult brains is not marked by H3K4me3 in the liver. This is supported by the following:
+
+1) There is comparable mean widths between fetal brains and adult brain, suggesting that there are more peaks in the adult brain sample compared to the liver sample.
+
+2) As seen in the Venn Diagram, overall sum of peaks in the adult brain samples are nearly 2 times the sum of peaks in the liver sample. 
+
+3) Of the total sum of peaks of adult brain, only 13% (3840 / 29134) overlap with peaks in the liver sample: the proportion of overlap is higher only when the fetal-adult-liver combination is evaluated (19233 vs 3840 for liver alone). This suggests that overlap of peaks beween adult brain and liver peaks is minimal.
+
+4) The percentage of peaks with H3K4me3 in the liver is 11% lower than the adult brain sample. In addition, the percentage in the liver is comparable to that of the percentage of fetal sample. This is important because as seen in the Venn Diagram, fetal brain peaks are 5 times less than the liver peaks and still the proportion is similar. This further supports that the H3K4me3 in promoters in the adult brain is not marked by H3K4me3 in the liver.    
+
+
+
+
+
+
+

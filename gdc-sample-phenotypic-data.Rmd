@@ -1,0 +1,89 @@
+---
+title: "Brief Exploratory Analysis of the GDS Capstone Project Phenotypic Dataset"
+author: 'Felix E. Rivera-Mariani, PhD'
+date: "July 18, 2016"
+output: html_document
+---
+
+### Summary
+This data analysis report is a brief summary of the phenotypic dataset associated with RNA-seq data analyzed for Capstone project of the Johns Hopkins Genomic Data Science Specialization. The tab-delimited file was loaded, and evaluated by the following variables: **age, sex, race, rin, and fraction**. In addition, after **_subsetting by sex_**, it was further evaluated by **age, race and fraction**. 
+
+**Note**: This report was prepared with R (https://www.r-project.org/) and knitr (http://yihui.name/knitr/). You can find the complete codes for this report [here](https://github.com/friveramariani/genomic-data-science/blob/master/gdc-sample-phenotypic-data.Rmd)
+
+### Loading the Dataset
+```{r, dataset, echo=FALSE}
+# load the dataset
+phendata <- read.delim("C:/Users/Felix/Dropbox/Coursera/Genomic-Data-Science/8-Genomic-datascience-capstone/genomic-data-science/gds-sample-phenotypic-data.txt")
+
+
+# evaluate classess of the variables
+str (phendata)
+```
+
+### Descriptive Statistics of the Whole Dataset
+```{r, summary stats, echo = FALSE}
+library (pander)
+pander (summary (phendata))
+```
+
+#### Summary of Descriptive Statistics
+- **Age**: 
+	- mean  = 2 
+	- median = 9.67 
+	- range from -0.5 to 73
+	- 75% of samples > 0.0625
+	- 25% of samples < 44.31
+
+- **Sex distributions**: 
+	- 66.7% male
+	- 33.3% female 
+
+- **Race distributions**: 
+	- 60.4% African-American
+	- 35% Caucasian
+	- only 1 Asiatic and 1 Hispanic
+
+- **RIN**: 
+	- mean = 8.4
+	- median = 8.5
+	- range 5.3 to 10.0
+	- 75% > 8.1
+	- 25% <8.8
+
+- **Fraction distributions**: 
+	-	14.6% cytosol
+	-	12.5% nucleus
+	-   72.9% total
+
+
+```{r, distribution by age, echo=FALSE}
+hist(phendata$age, main = "Figure 1: Distribution of Age in the Samples", xlab="Age", las=1)
+```
+
+### Descriptive Statistics after Adjusting by Sex
+#### Mean age by Sex
+```{r, summaries by sex by age, echo=FALSE}
+agebysex <- aggregate(phendata$age, by=list (phendata$sex), FUN=mean)
+names (agebysex) <- c("Sex", "MeanAge")
+pander (agebysex)
+```
+
+#### Mean RIN by Sex
+```{r, summaries by sex by rin, echo=FALSE}
+rinbysex <- aggregate(phendata$rin, by=list (phendata$sex), FUN=mean)
+names (rinbysex) <- c("Sex", "MeanRin")
+pander (rinbysex)
+```
+
+#### Distribution of race by Sex
+```{r. summaries by sex by race, echo=FALSE}
+pander(table (phendata$race, phendata$sex))
+```
+
+#### Distribution of fractions by Sex
+```{r. summaries by sex by fraction, echo=FALSE}
+pander(table (phendata$fraction, phendata$sex))
+```
+
+### Conclusion
+Among the 48 samples in this genomic data science study, the age of individuals from which the samples originate fall between two groups (**Figure 1**): below 20 or above 30 years og age.  This information matches to the information from this [original article](http://www.ncbi.nlm.nih.gov/pmc/articles/PMC4281298/), in which **12 of the samples were from fetus, 6 from less than 1 year, 6 between 1 and 6 years, 6 from teens (between 14 and 18 years), 12 adults (between 35 and 52 years), and the remaining 6 into the elderly group (> 60 years). With regard to gender, the dataset has a 2:1 male-to-female ratio. When evaluating all other variables after adjusting for sex, only race distribution differ, contrary to age, rin, and fraction, which reported a comparable means (with age and rin) and distribution, respectively. Therefore, the extracted phenotypic information matches that of the original article, as well as the difference in distribution by race when the samples were adjusted for sex, and similarities in the rin of the RNA-seq and age of the samples. 

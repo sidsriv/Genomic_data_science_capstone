@@ -1,0 +1,247 @@
+---
+title: "Summary of the FastQC and Results"
+author: "Felix E. Rivera-Mariani, PhD"
+date: "July 23, 2016"
+output: pdf_document
+---
+
+### Summary
+This report describes the brief descriptive data analysis of the quality of the mapped reads performed with TopHat for the three fetus and three adults sampels. Find [here](https://github.com/friveramariani/genomic-data-science/blob/master/Links-for-Summary-Alignments-and-FASTQC.md) the link for the six samples used in this genomic data science project. Both the alignment of the RNA-seq of the samples and the quality of the reads was performed [Galaxy](https://usegalaxy.org/). The FastQC files, both the html and txt files were downloaded to performed the descriptive analysis of quality of the reads. 
+
+**Note** This report was prepared with R (https://www.r-project.org/) and knitr (http://yihui.name/knitr/). 
+
+Find below the dataset containing the the following information:
+
+1. run = RNA-seq run ID of the samples
+2. sample = Sample ID
+3. sra = SRA of the sample
+4. age = age of the individuals from where the samples were collected
+5. ageg = age group (fetus, adults)
+6. sex = gender of individuals from where the samples were collected
+7. race = race of the individuals
+8. rin = RNA-seq RIN for each sample
+9. fraction = type of sample (cytosol, nucleus, or total; in our case all are total RNA)
+10. input = sequence input for TopHat alignment
+11. lrmapped = left mapped reads
+12. lrxalgn = left mapped reads with multiple alignments
+13. rrmapped = right mapped reads
+14. rrxalgn = right mapped reads with multiple alignments
+15. pairsalgn = pairs alignments
+16. pairsxalgn = pairs with multiple alignments
+17. pairsdic = pairs with discordant alignment
+18. concrdate = percentage of concordant alignment
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+setwd("C:/Users/Felix/Dropbox/Coursera/Genomic-Data-Science/8-Genomic-datascience-capstone/github-files")
+
+library (xlsx)
+pheno_align <- read.xlsx("gdc-sample-phenotypic-summalign.xlsx", 1)
+
+print(pheno_align)
+```
+
+The Summary Alignment text files containing the information of the mapped reads can be found [here](https://github.com/friveramariani/genomic-data-science/blob/master/Links-for-Summary-Alignments-and-FASTQC.md), as well as the html and txt files for the FastQC by each sample.
+
+Find all the R codes for this report [here](https://github.com/friveramariani/genomic-data-science/blob/master/FastQC-report.R).  
+
+
+Find below the new dataset with these three additional variable: **percent mapped (pct_mapped), average of per sequence quality (psqallmean), quality scores (psqscallmean), and percentageGC (gc_concent)**.
+
+```{r, echo=FALSE}
+# Run SRR1554538-----------------------------------------------
+## load dataset
+run4538 <- read.xlsx("FastQC_on_SRR1554538__RawData.xlsx", 1)
+
+## subset by per sequence quality
+pbsq4538 <- run4538[c(13:67),] # subset by per sequence quality
+
+### rename variables
+names(pbsq4538) <- c("base", "mean", "median", "lowerq", "upperq", "10pctl", "90pctl")
+
+### base and mean as numeric 
+pbsq4538$base <- as.numeric(pbsq4538$base)
+pbsq4538$mean <- as.numeric(pbsq4538$mean)
+
+## subset by per sequence quality scores
+psqc4538 <- run4538[c(71:109), c(1:2)] 
+names(psqc4538) <- c("quality", "count")
+
+### quality and count as numeric 
+psqc4538$quality <- as.numeric(psqc4538$quality)
+psqc4538$count <- as.numeric(psqc4538$count)
+
+# Run SRR1554541-----------------------------------------------
+## load dataset
+run4541 <- read.xlsx("FastQC_on__SRR1554541__RawData.xlsx", 1)
+
+## subset the dataset
+pbsq4541 <- run4541[c(13:67),] # subset by per sequence quality
+names(pbsq4541) <- c("base", "mean", "median", "lowerq", "upperq", "10pctl", "90pctl")
+
+### base and mean as numeric 
+pbsq4541$base <- as.numeric(pbsq4541$base)
+pbsq4541$mean <- as.numeric(pbsq4541$mean)
+
+psqc4541 <- run4541[c(71:109), c(1:2)] # subset by per sequence quality scores
+names(psqc4541) <- c("quality", "count")
+
+### quality and count as numeric 
+psqc4541$quality <- as.numeric(psqc4541$quality)
+psqc4541$count <- as.numeric(psqc4541$count)
+
+
+# Run SRR1554566-----------------------------------------------
+## load dataset
+run4566 <- read.xlsx("FastQC_on__SRR1554566__RawData.xlsx", 1)
+
+## subset the dataset
+pbsq4566 <- run4566[c(13:67),] # subset by per sequence quality
+
+### rename variables
+names(pbsq4566) <- c("base", "mean", "median", "lowerq", "upperq", "10pctl", "90pctl")
+
+### base and mean as numeric 
+pbsq4566$base <- as.numeric(pbsq4566$base)
+pbsq4566$mean <- as.numeric(pbsq4566$mean)
+
+## subset by per sequence quality scores
+psqc4566 <- run4566[c(71:109), c(1:2)] 
+names(psqc4566) <- c("quality", "count")
+
+### quality and count as numeric 
+psqc4566$quality <- as.numeric(psqc4566$quality)
+psqc4566$count <- as.numeric(psqc4566$count)
+
+
+# Run SRR1554535-----------------------------------------------
+## load dataset
+run4535 <- read.xlsx("FastQC_on__SRR1554535__RawData.xlsx", 1)
+
+## subset the dataset
+pbsq4535 <- run4535[c(13:67),] # subset by per sequence quality
+
+### rename variables
+names(pbsq4535) <- c("base", "mean", "median", "lowerq", "upperq", "10pctl", "90pctl")
+
+### base and mean as numeric 
+pbsq4535$base <- as.numeric(pbsq4535$base)
+pbsq4535$mean <- as.numeric(pbsq4535$mean)
+
+## subset by per sequence quality scores
+psqc4535 <- run4535[c(71:109), c(1:2)] 
+names(psqc4535) <- c("quality", "count")
+
+### quality and count as numeric 
+psqc4535$quality <- as.numeric(psqc4535$quality)
+psqc4535$count <- as.numeric(psqc4535$count)
+
+
+# Run SRR1554534-----------------------------------------------
+## load dataset
+run4534 <- read.xlsx("FastQC_on__SRR1554534__RawData.xlsx", 1)
+
+## subset the dataset
+pbsq4534 <- run4534[c(13:67),] # subset by per sequence quality
+
+names(pbsq4534) <- c("base", "mean", "median", "lowerq", "upperq", "10pctl", "90pctl")
+
+### base and mean as numeric 
+pbsq4534$base <- as.numeric(pbsq4534$base)
+pbsq4534$mean <- as.numeric(pbsq4534$mean)
+
+## subset by per sequence quality scores
+psqc4534 <- run4534[c(71:109), c(1:2)] 
+names(psqc4534) <- c("quality", "count")
+
+### quality and count as numeric 
+psqc4534$quality <- as.numeric(psqc4534$quality)
+psqc4534$count <- as.numeric(psqc4534$count)
+
+# Run SRR1554561-----------------------------------------------
+## load dataset
+run4561 <- read.xlsx("FastQC_on__SRR1554561__RawData.xlsx", 1)
+
+## subset the dataset
+pbsq4561 <- run4561[c(13:67),] # subset by per sequence quality
+
+### rename variables
+names(pbsq4561) <- c("base", "mean", "median", "lowerq", "upperq", "10pctl", "90pctl")
+
+### base and mean as numeric 
+pbsq4561$base <- as.numeric(pbsq4561$base)
+pbsq4561$mean <- as.numeric(pbsq4561$mean)
+
+## subset by per sequence quality scores
+psqc4561 <- run4561[c(71:109), c(1:2)] 
+names(psqc4561) <- c("quality", "count")
+
+### quality and count as numeric 
+psqc4561$quality <- as.numeric(psqc4561$quality)
+psqc4561$count <- as.numeric(psqc4561$count)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+#------Mean per sequante quality and per sequence quality score------
+## extract per sequence quality for each run
+psqall <- cbind (pbsq4538[2], pbsq4541[2], pbsq4566[2], pbsq4535[2], pbsq4534[2], pbsq4561[2])
+
+### calculate the mean for each column (each column is a sample)
+psqallmean <- apply(psqall, 2, mean, na.rm.=TRUE)
+
+## extract per sequence quality scores for each run
+psqscall <- cbind (psqc4538[2], psqc4541[2], psqc4566[2], psqc4535[2], psqc4534[2], psqc4561[2])
+
+### calculate the mean for each column (each column is a sample).
+psqscallmean <- apply (psqscall, 2, mean, na.rm=TRUE)
+
+
+#---- GC % per sample -----------------------------------------------
+
+## information extracted from row 10, column 2 of each dataset in the order
+## in which each run has been loaded in this script 
+gc_content <- c(0.47, 0.46, 0.49, 0.47, 0.51, 0.52)
+
+
+#----Create dataframe with run, sample, agegroup, pct_mapped, psqallmean, psqscallmean, gc_content
+
+## calculate the percentge of mapped reads per sample
+### the average between the left and right reads was calculated, and this average divied by the input
+library (dplyr)
+pheno_align <- mutate (pheno_align, pct_mapped = ((lrmapped + rrmapped)/2) / input)
+
+## extract the variables from pheno_align, and mean per sequence quality, mean quality scores
+## and gc_content
+alldata <- data.frame (pheno_align[,c(1:6, 8, 19)], psqallmean, psqscallmean, gc_content)
+```
+
+```{r, echo=FALSE}
+
+print (alldata)
+```
+
+To evaluate differences in reads quality between age groups, the dataset was subset by column 6 above, and selected the last four variables added to the dataset. The summary statistics for each age group-subset was then calculated to see differences between the age groups. 
+
+```{r, echo=FALSE}
+# subset by age group
+allf <- subset (alldata, ageg == "fetus")
+alla <- subset (alldata, ageg == "adult")
+
+#extract last four columns for each age group
+allf_last4 <- select (allf, pct_mapped:gc_content)
+
+alla_last4 <- select (alla, pct_mapped:gc_content)
+```
+
+Find below the descriptive statistics for the fetus age group.
+```{r, echo=FALSE}
+summary (allf_last4)
+```
+
+Find below the descriptive statistics for the adult age group.
+```{r, echo=FALSE}
+summary (alla_last4)
+```
+
+From the summary statistics above, we can see that the **mean of the percentage mapped reads** in the fetus group is **1% higher** than the adult group. Similarly, both the **mean for per sequence quality** and **quality score** is higher **in the fetus, but that is not the case for the percentage of GC content.
